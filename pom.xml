@@ -17,6 +17,8 @@
         <spring.version>5.2.3.RELEASE</spring.version>
         <jackson-databind.version>2.10.2</jackson-databind.version>
         <jackson-module-kotlin.version>2.10.2</jackson-module-kotlin.version>
+        <reactor-core.version>3.3.2.RELEASE</reactor-core.version>
+        <reactor-netty.version>0.9.4.RELEASE</reactor-netty.version>
     </properties>
 
     <build>
@@ -112,8 +114,18 @@
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
-            <artifactId>spring-web</artifactId>
+            <artifactId>spring-webflux</artifactId>
             <version>${spring.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.projectreactor</groupId>
+            <artifactId>reactor-core</artifactId>
+            <version>${reactor-core.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.projectreactor.netty</groupId>
+            <artifactId>reactor-netty</artifactId>
+            <version>${reactor-netty.version}</version>
         </dependency>
     </dependencies>
 
