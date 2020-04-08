@@ -12,9 +12,7 @@ import org.springframework.web.reactive.function.client.ExchangeStrategies
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.bodyToMono
 import reactor.core.publisher.Mono
-import ru.roborox.airtableclient.dto.common.Page
 import kotlin.properties.Delegates
-
 
 class AirtableClient(baseUrl: String) {
     var client: WebClient by Delegates.notNull()
