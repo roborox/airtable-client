@@ -21,8 +21,31 @@
         <reactor-netty.version>0.9.4.RELEASE</reactor-netty.version>
     </properties>
 
+    <distributionManagement>
+        <repository>
+            <id>roborox-releases</id>
+            <url>${roborox.nexus.url}/content/repositories/releases/</url>
+        </repository>
+        <snapshotRepository>
+            <id>roborox-snapshots</id>
+            <url>${roborox.nexus.url}/content/repositories/snapshots</url>
+        </snapshotRepository>
+    </distributionManagement>
+
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <artifactId>kotlin-maven-plugin</artifactId>
                 <groupId>org.jetbrains.kotlin</groupId>
