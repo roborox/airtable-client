@@ -16,6 +16,7 @@ import reactor.core.publisher.Mono
 
 class AirtableClient<T>(
     baseUrl: String,
+    private val token: String,
     clazz: Class<T>
 ) {
     private val pageType = ParameterizedTypeReference.forType<Page<T>>(ResolvableType.forClassWithGenerics(Page::class.java, clazz).type)
@@ -33,7 +34,7 @@ class AirtableClient<T>(
         WebClient.builder().exchangeStrategies(strategies).baseUrl(baseUrl).build()
     }()
 
-    fun getRecords(url: String, token: String): Mono<Page<T>> {
+    fun getRecords(url: String): Mono<Page<T>> {
         return client.get()
             .uri(url)
             .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
