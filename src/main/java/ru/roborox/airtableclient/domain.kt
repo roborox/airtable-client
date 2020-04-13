@@ -4,11 +4,16 @@ import java.time.LocalDateTime
 
 data class Page<T>(
     val records: List<Record<T>>,
-    val offset: String
+    val offset: String = ""
 )
 
 data class Record<T>(
     val id: String,
     val fields: T,
     val createdTime: LocalDateTime
+)
+
+data class BlackListDTO(
+    val item: String,
+    val type: String
 )

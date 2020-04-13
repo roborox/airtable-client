@@ -6,6 +6,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.core.ResolvableType
+import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.http.codec.json.Jackson2JsonDecoder
 import org.springframework.http.codec.json.Jackson2JsonEncoder
@@ -14,8 +15,9 @@ import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
 
 class AirtableClient<T>(
-    baseUrl: String,
-    clazz: Class<T>
+        baseUrl: String,
+        private val token: String,
+        clazz: Class<T>
 ) {
     private val pageType = ParameterizedTypeReference.forType<Page<T>>(ResolvableType.forClassWithGenerics(Page::class.java, clazz).type)
     private val client: WebClient = {
@@ -32,10 +34,10 @@ class AirtableClient<T>(
         WebClient.builder().exchangeStrategies(strategies).baseUrl(baseUrl).build()
     }()
 
-    fun getRecords(url: String, token: String): Mono<Page<T>> {
+    fun getRecords(url: String): Mono<Page<T>> {
         return client.get()
             .uri(url)
-            .header("Authorization", token)
+            .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
             .retrieve()
             .bodyToMono(pageType)
     }
