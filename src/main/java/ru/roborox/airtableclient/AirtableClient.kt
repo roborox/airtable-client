@@ -15,9 +15,9 @@ import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
 
 class AirtableClient<T>(
-        baseUrl: String,
-        private val token: String,
-        clazz: Class<T>
+    baseUrl: String,
+    private val token: String,
+    clazz: Class<T>
 ) {
     private val pageType = ParameterizedTypeReference.forType<Page<T>>(ResolvableType.forClassWithGenerics(Page::class.java, clazz).type)
     private val client: WebClient = {
