@@ -15,6 +15,7 @@ import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.util.DefaultUriBuilderFactory
 import org.springframework.web.util.UriBuilderFactory
 import reactor.core.publisher.Mono
+import ru.roborox.airtable.client.model.CreatingRecord
 import ru.roborox.airtable.client.model.Page
 import ru.roborox.airtable.client.model.PatchingRecord
 
@@ -66,7 +67,7 @@ class AirtableClient(
         }
         return client.get()
             .uri(url)
-            .header(HttpHeaders.AUTHORIZATION, "Bearer $apiKey")
+            .header(HttpHeaders.AUTHORIZATION, authorizationHeader)
             .retrieve()
             .bodyToMono(pageType)
     }
@@ -84,7 +85,27 @@ class AirtableClient(
         }
         return client.patch()
             .uri(url)
-            .header(HttpHeaders.AUTHORIZATION, "Bearer $apiKey")
+            .header(HttpHeaders.AUTHORIZATION, authorizationHeader)
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .bodyValue(records)
+            .retrieve()
+            .bodyToMono(pageType)
+    }
+
+    fun <T> createRecords(
+        tableName: String,
+        records: List<CreatingRecord<T>>,
+        type: Class<T>
+    ): Mono<Page<T>> {
+        val pageType = createPageType(type)
+
+        val url = uriBuilderFactory.builder().run {
+            pathSegment(tableName)
+            build()
+        }
+        return client.post()
+            .uri(url)
+            .header(HttpHeaders.AUTHORIZATION, authorizationHeader)
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .bodyValue(records)
             .retrieve()
@@ -95,6 +116,8 @@ class AirtableClient(
         ParameterizedTypeReference.forType<Page<T>>(
             ResolvableType.forClassWithGenerics(Page::class.java, type).type
         )
+
+    private val authorizationHeader: String = "Bearer $apiKey"
 
     companion object {
         private const val AIRTABLE_API_URL: String = "https://api.airtable.com/v0/"
@@ -112,6 +135,13 @@ class AirtableClient(
             records: List<PatchingRecord<T>>
         ): Mono<Page<T>> {
             return patchRecords(tableName, records, T::class.java)
+        }
+
+        inline fun <reified T> AirtableClient.createRecords(
+            tableName: String,
+            records: List<CreatingRecord<T>>
+        ): Mono<Page<T>> {
+            return createRecords(tableName, records, T::class.java)
         }
     }
 }
