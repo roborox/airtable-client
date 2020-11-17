@@ -21,7 +21,7 @@ import ru.roborox.airtable.client.model.PatchingRecord
 
 class AirtableClient(
     baseId: String,
-    private val apiKey: String
+    apiKey: String
 ) {
     private val uriBuilderFactory: UriBuilderFactory = DefaultUriBuilderFactory(AIRTABLE_API_URL+baseId)
 
