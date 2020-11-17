@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.KotlinModule
-import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.core.ResolvableType
 import org.springframework.http.HttpHeaders
@@ -106,7 +105,6 @@ class AirtableClient(
             pathSegment(tableName.decode())
             build()
         }
-        println(ObjectMapper().registerKotlinModule().writeValueAsString(request))
         return client.post()
             .uri(url)
             .header(HttpHeaders.AUTHORIZATION, authorizationHeader)
