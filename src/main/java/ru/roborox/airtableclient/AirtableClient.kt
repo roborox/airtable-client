@@ -14,6 +14,7 @@ import org.springframework.web.reactive.function.client.ExchangeStrategies
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
 
+@Deprecated("Should use ru.roborox.airtable.client.AirtableClient")
 class AirtableClient<T>(
     baseUrl: String,
     private val token: String,
