@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.KotlinModule
+import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.core.ResolvableType
 import org.springframework.http.HttpHeaders
@@ -15,9 +16,11 @@ import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.util.DefaultUriBuilderFactory
 import org.springframework.web.util.UriBuilderFactory
 import reactor.core.publisher.Mono
-import ru.roborox.airtable.client.model.CreatingRecord
 import ru.roborox.airtable.client.model.Page
-import ru.roborox.airtable.client.model.PatchingRecord
+import ru.roborox.airtable.client.request.CreateRecordsRequest
+import ru.roborox.airtable.client.request.PatchRecordsRequest
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
 
 class AirtableClient(
     baseId: String,
@@ -60,7 +63,7 @@ class AirtableClient(
         val pageType = createPageType(type)
 
         val url = uriBuilderFactory.builder().run {
-            pathSegment(tableName)
+            pathSegment(tableName.decode())
             pageSize?.let { queryParam("pageSize", it) }
             offset?.let { queryParam("offset", it) }
             build()
@@ -74,40 +77,41 @@ class AirtableClient(
 
     fun <T> patchRecords(
         tableName: String,
-        records: List<PatchingRecord<T>>,
+        request: PatchRecordsRequest<T>,
         type: Class<T>
     ): Mono<Page<T>> {
         val pageType = createPageType(type)
 
         val url = uriBuilderFactory.builder().run {
-            pathSegment(tableName)
+            pathSegment(tableName.decode())
             build()
         }
         return client.patch()
             .uri(url)
             .header(HttpHeaders.AUTHORIZATION, authorizationHeader)
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-            .bodyValue(records)
+            .bodyValue(request)
             .retrieve()
             .bodyToMono(pageType)
     }
 
     fun <T> createRecords(
         tableName: String,
-        records: List<CreatingRecord<T>>,
+        request: CreateRecordsRequest<T>,
         type: Class<T>
     ): Mono<Page<T>> {
         val pageType = createPageType(type)
 
         val url = uriBuilderFactory.builder().run {
-            pathSegment(tableName)
+            pathSegment(tableName.decode())
             build()
         }
+        println(ObjectMapper().registerKotlinModule().writeValueAsString(request))
         return client.post()
             .uri(url)
             .header(HttpHeaders.AUTHORIZATION, authorizationHeader)
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-            .bodyValue(records)
+            .bodyValue(request)
             .retrieve()
             .bodyToMono(pageType)
     }
@@ -116,6 +120,8 @@ class AirtableClient(
         ParameterizedTypeReference.forType<Page<T>>(
             ResolvableType.forClassWithGenerics(Page::class.java, type).type
         )
+
+    private fun String.decode(): String = URLDecoder.decode(this, StandardCharsets.UTF_8)
 
     private val authorizationHeader: String = "Bearer $apiKey"
 
@@ -132,16 +138,16 @@ class AirtableClient(
 
         inline fun <reified T> AirtableClient.patchRecords(
             tableName: String,
-            records: List<PatchingRecord<T>>
+            request: PatchRecordsRequest<T>
         ): Mono<Page<T>> {
-            return patchRecords(tableName, records, T::class.java)
+            return patchRecords(tableName, request, T::class.java)
         }
 
         inline fun <reified T> AirtableClient.createRecords(
             tableName: String,
-            records: List<CreatingRecord<T>>
+            request: CreateRecordsRequest<T>
         ): Mono<Page<T>> {
-            return createRecords(tableName, records, T::class.java)
+            return createRecords(tableName, request, T::class.java)
         }
     }
 }

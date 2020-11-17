@@ -3,11 +3,15 @@ package ru.roborox.airtable.client
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
-import org.springframework.web.reactive.function.client.WebClientResponseException
 import reactor.core.publisher.Mono
+import ru.roborox.airtable.client.AirtableClient.Companion.createRecords
 import ru.roborox.airtable.client.AirtableClient.Companion.getRecords
-import ru.roborox.airtable.client.dto.BlackListDto
+import ru.roborox.airtable.client.AirtableClient.Companion.patchRecords
+import ru.roborox.airtable.client.dto.DesignProjectDto
+import ru.roborox.airtable.client.model.CreatingRecord
+import ru.roborox.airtable.client.model.PatchingRecord
+import ru.roborox.airtable.client.request.CreateRecordsRequest
+import ru.roborox.airtable.client.request.PatchRecordsRequest
 import java.util.*
 
 @Tag("integration")
@@ -15,7 +19,6 @@ class AirtableClientTest {
     private val properties = Properties().also {
         it.load(this::class.java.classLoader.getResourceAsStream("local.properties"))
     }
-
     private val baseId = getProperty("DEV_AIRTABLE_BASE_ID")
     private val apiKey = getProperty("DEV_AIRTABLE_API_KEY")
 
@@ -23,37 +26,83 @@ class AirtableClientTest {
 
     @Test
     fun getRecords() {
-        val page = client.getRecords<BlackListDto>(
-            tableName = "blacklist",
+        val page = client.getRecords<DesignProjectDto>(
+            tableName = "Design projects",
             pageSize = 3,
             offset = null
         ).await()
 
-        assertThat(page.offset?.split("/")?.get(1)).isEqualTo("recAEPvdDtk3aXP3H")
-        assertThat(page.records[0].fields.item).isEqualTo("0x5785b3c9b2e62665a8cba0f7bd50dc70ddbd0859")
+        assertThat(page.records).hasSize(3)
     }
 
     @Test
-    fun getRecordsWithoutOffset() {
-        val page = client.getRecords<BlackListDto>(
-            tableName = "blacklist",
-            pageSize = null,
-            offset = null
+    fun createRecords() {
+        val dp1 = DesignProjectDto(
+            kickoffDate = "2020-09-10",
+            category = "Technology design",
+            name = "Test name 1"
+        )
+        val dp2 = DesignProjectDto(
+            kickoffDate = "2020-09-11",
+            category = "Brand identity",
+            name = "Test name 2"
+        )
+        val createRequest = CreateRecordsRequest(
+            listOf(CreatingRecord(dp1), CreatingRecord(dp2))
+        )
+        val page = client.createRecords(
+            tableName = "Design projects",
+            request = createRequest
         ).await()
 
-        assertThat(page.offset).isNull()
-        assertThat(page.records[0].fields.item).isEqualTo("0x5785b3c9b2e62665a8cba0f7bd50dc70ddbd0859")
+        assertThat(page.records).hasSize(2)
+        assertThat(page.records[0].fields).isEqualTo(dp1)
+        assertThat(page.records[1].fields).isEqualTo(dp2)
     }
 
     @Test
-    fun notFound() {
-        assertThrows<WebClientResponseException.NotFound> {
-            client.getRecords<BlackListDto>(
-                tableName = "_blacklist",
-                pageSize = null,
-                offset = null
-            ).block()
-        }
+    fun patchRecords() {
+        val dp1 = DesignProjectDto(
+            kickoffDate = "2020-09-10",
+            category = "Technology design",
+            name = "Test name 1"
+        )
+        val dp2 = DesignProjectDto(
+            kickoffDate = "2020-09-11",
+            category = "Brand identity",
+            name = "Test name 2"
+        )
+        val createRequest = CreateRecordsRequest(
+            listOf(CreatingRecord(dp1), CreatingRecord(dp2))
+        )
+        val page = client.createRecords(
+            tableName = "Design projects",
+            request = createRequest
+        ).await()
+
+        val dp1Id = page.records[0].id
+        val dp2Id = page.records[1].id
+
+        val patchRequest = PatchRecordsRequest(
+            listOf(
+                PatchingRecord(
+                    id = dp1Id,
+                    fields = dp1.copy(name = "New name 1")
+                ),
+                PatchingRecord(
+                    id = dp2Id,
+                    fields = dp2.copy(name = "New name 2")
+                )
+            )
+        )
+        val patchedPage = client.patchRecords(
+            tableName = "Design projects",
+            request = patchRequest
+        ).await()
+
+        assertThat(patchedPage.records).hasSize(2)
+        assertThat(patchedPage.records[0].fields.name).isEqualTo("New name 1")
+        assertThat(patchedPage.records[1].fields.name).isEqualTo("New name 2")
     }
 
     private fun <T: Any> Mono<T>.await(): T = block() ?: error("Null client response")
