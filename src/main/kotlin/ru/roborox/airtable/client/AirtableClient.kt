@@ -15,7 +15,9 @@ import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.util.DefaultUriBuilderFactory
 import org.springframework.web.util.UriBuilderFactory
 import reactor.core.publisher.Mono
+import ru.roborox.airtable.client.model.CreatingRecord
 import ru.roborox.airtable.client.model.Page
+import ru.roborox.airtable.client.model.PatchingRecord
 import ru.roborox.airtable.client.request.CreateRecordsRequest
 import ru.roborox.airtable.client.request.PatchRecordsRequest
 import java.net.URLDecoder
@@ -76,7 +78,7 @@ class AirtableClient(
 
     fun <T> patchRecords(
         tableName: String,
-        request: PatchRecordsRequest<T>,
+        records: List<PatchingRecord<T>>,
         type: Class<T>
     ): Mono<Page<T>> {
         val pageType = createPageType(type)
@@ -85,6 +87,9 @@ class AirtableClient(
             pathSegment(tableName.decode())
             build()
         }
+        val request = PatchRecordsRequest(
+            records = records
+        )
         return client.patch()
             .uri(url)
             .header(HttpHeaders.AUTHORIZATION, authorizationHeader)
@@ -96,7 +101,7 @@ class AirtableClient(
 
     fun <T> createRecords(
         tableName: String,
-        request: CreateRecordsRequest<T>,
+        fields: List<T>,
         type: Class<T>
     ): Mono<Page<T>> {
         val pageType = createPageType(type)
@@ -105,6 +110,9 @@ class AirtableClient(
             pathSegment(tableName.decode())
             build()
         }
+        val request = CreateRecordsRequest(
+            records = fields.map { CreatingRecord(it) }
+        )
         return client.post()
             .uri(url)
             .header(HttpHeaders.AUTHORIZATION, authorizationHeader)
@@ -136,16 +144,16 @@ class AirtableClient(
 
         inline fun <reified T> AirtableClient.patchRecords(
             tableName: String,
-            request: PatchRecordsRequest<T>
+            records: List<PatchingRecord<T>>
         ): Mono<Page<T>> {
-            return patchRecords(tableName, request, T::class.java)
+            return patchRecords(tableName, records, T::class.java)
         }
 
         inline fun <reified T> AirtableClient.createRecords(
             tableName: String,
-            request: CreateRecordsRequest<T>
+            fields: List<T>
         ): Mono<Page<T>> {
-            return createRecords(tableName, request, T::class.java)
+            return createRecords(tableName, fields, T::class.java)
         }
     }
 }

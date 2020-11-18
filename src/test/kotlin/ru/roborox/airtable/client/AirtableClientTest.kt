@@ -8,10 +8,7 @@ import ru.roborox.airtable.client.AirtableClient.Companion.createRecords
 import ru.roborox.airtable.client.AirtableClient.Companion.getRecords
 import ru.roborox.airtable.client.AirtableClient.Companion.patchRecords
 import ru.roborox.airtable.client.dto.DesignProjectDto
-import ru.roborox.airtable.client.model.CreatingRecord
 import ru.roborox.airtable.client.model.PatchingRecord
-import ru.roborox.airtable.client.request.CreateRecordsRequest
-import ru.roborox.airtable.client.request.PatchRecordsRequest
 import java.util.*
 
 @Tag("integration")
@@ -47,12 +44,9 @@ class AirtableClientTest {
             category = "Brand identity",
             name = "Test name 2"
         )
-        val createRequest = CreateRecordsRequest(
-            listOf(CreatingRecord(dp1), CreatingRecord(dp2))
-        )
         val page = client.createRecords(
             tableName = "Design projects",
-            request = createRequest
+            fields = listOf(dp1, dp2)
         ).await()
 
         assertThat(page.records).hasSize(2)
@@ -72,32 +66,27 @@ class AirtableClientTest {
             category = "Brand identity",
             name = "Test name 2"
         )
-        val createRequest = CreateRecordsRequest(
-            listOf(CreatingRecord(dp1), CreatingRecord(dp2))
-        )
         val page = client.createRecords(
             tableName = "Design projects",
-            request = createRequest
+            fields = listOf(dp1, dp2)
         ).await()
 
         val dp1Id = page.records[0].id
         val dp2Id = page.records[1].id
 
-        val patchRequest = PatchRecordsRequest(
-            listOf(
-                PatchingRecord(
-                    id = dp1Id,
-                    fields = dp1.copy(name = "New name 1")
-                ),
-                PatchingRecord(
-                    id = dp2Id,
-                    fields = dp2.copy(name = "New name 2")
-                )
+        val patchingRecords = listOf(
+            PatchingRecord(
+                id = dp1Id,
+                fields = dp1.copy(name = "New name 1")
+            ),
+            PatchingRecord(
+                id = dp2Id,
+                fields = dp2.copy(name = "New name 2")
             )
         )
         val patchedPage = client.patchRecords(
             tableName = "Design projects",
-            request = patchRequest
+            records = patchingRecords
         ).await()
 
         assertThat(patchedPage.records).hasSize(2)
