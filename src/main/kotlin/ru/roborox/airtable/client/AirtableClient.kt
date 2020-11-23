@@ -127,7 +127,7 @@ class AirtableClient(
             ResolvableType.forClassWithGenerics(Page::class.java, type).type
         )
 
-    private fun String.decode(): String = URLDecoder.decode(this, StandardCharsets.UTF_8)
+    private fun String.decode(): String = URLDecoder.decode(this, "UTF-8")
 
     private val authorizationHeader: String = "Bearer $apiKey"
 
