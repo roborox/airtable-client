@@ -4,10 +4,15 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.KotlinModule
+import io.netty.channel.ChannelOption
+import io.netty.handler.timeout.ReadTimeoutHandler
+import io.netty.handler.timeout.WriteTimeoutHandler
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.core.ResolvableType
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
+import org.springframework.http.client.reactive.ClientHttpConnector
+import org.springframework.http.client.reactive.ReactorClientHttpConnector
 import org.springframework.http.codec.json.Jackson2JsonDecoder
 import org.springframework.http.codec.json.Jackson2JsonEncoder
 import org.springframework.web.reactive.function.client.ExchangeStrategies
@@ -15,19 +20,21 @@ import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.util.DefaultUriBuilderFactory
 import org.springframework.web.util.UriBuilderFactory
 import reactor.core.publisher.Mono
+import reactor.netty.http.client.HttpClient
+import reactor.util.retry.Retry
 import ru.roborox.airtable.client.model.CreatingRecord
 import ru.roborox.airtable.client.model.Page
 import ru.roborox.airtable.client.model.PatchingRecord
 import ru.roborox.airtable.client.request.CreateRecordsRequest
 import ru.roborox.airtable.client.request.PatchRecordsRequest
 import java.net.URLDecoder
-import java.nio.charset.StandardCharsets
+import java.time.Duration
 
 class AirtableClient(
     baseId: String,
     apiKey: String
 ) {
-    private val uriBuilderFactory: UriBuilderFactory = DefaultUriBuilderFactory(AIRTABLE_API_URL+baseId)
+    private val uriBuilderFactory: UriBuilderFactory = DefaultUriBuilderFactory(AIRTABLE_API_URL + baseId)
 
     private val client = WebClient.builder().apply {
         val objectMapper = ObjectMapper()
@@ -52,7 +59,19 @@ class AirtableClient(
                 )
             }.build()
 
-        it.exchangeStrategies(strategies)
+        val httpClient = HttpClient.create()
+            .tcpConfiguration { client ->
+                client.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 70_000)
+                    .doOnConnected { conn ->
+                        conn
+                            .addHandlerLast(ReadTimeoutHandler(70))
+                            .addHandlerLast(WriteTimeoutHandler(70))
+                    }
+            }
+
+        val connector: ClientHttpConnector = ReactorClientHttpConnector(httpClient.wiretap(true))
+
+        it.exchangeStrategies(strategies).clientConnector(connector)
     }.build()
 
     fun <T> getRecords(
@@ -74,6 +93,10 @@ class AirtableClient(
             .header(HttpHeaders.AUTHORIZATION, authorizationHeader)
             .retrieve()
             .bodyToMono(pageType)
+            .retryWhen(
+                Retry.backoff(5, Duration.ofMillis(250))
+                    .minBackoff(Duration.ofMillis(100))
+            )
     }
 
     fun <T> patchRecords(
@@ -97,6 +120,10 @@ class AirtableClient(
             .bodyValue(request)
             .retrieve()
             .bodyToMono(pageType)
+            .retryWhen(
+                Retry.backoff(5, Duration.ofMillis(250))
+                    .minBackoff(Duration.ofMillis(100))
+            )
     }
 
     fun <T> createRecords(
@@ -120,6 +147,10 @@ class AirtableClient(
             .bodyValue(request)
             .retrieve()
             .bodyToMono(pageType)
+            .retryWhen(
+                Retry.backoff(5, Duration.ofMillis(250))
+                    .minBackoff(Duration.ofMillis(100))
+            )
     }
 
     private fun <T> createPageType(type: Class<T>) =
