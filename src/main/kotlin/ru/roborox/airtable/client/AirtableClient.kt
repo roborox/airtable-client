@@ -69,7 +69,7 @@ class AirtableClient(
                     }
             }
 
-        val connector: ClientHttpConnector = ReactorClientHttpConnector(httpClient.wiretap(true))
+        val connector: ClientHttpConnector = ReactorClientHttpConnector(httpClient)
 
         it.exchangeStrategies(strategies).clientConnector(connector)
     }.build()
