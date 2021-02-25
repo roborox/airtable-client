@@ -61,11 +61,11 @@ class AirtableClient(
 
         val httpClient = HttpClient.create()
             .tcpConfiguration { client ->
-                client.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 70_000)
+                client.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, TIMEOUT * 1000)
                     .doOnConnected { conn ->
                         conn
-                            .addHandlerLast(ReadTimeoutHandler(70))
-                            .addHandlerLast(WriteTimeoutHandler(70))
+                            .addHandlerLast(ReadTimeoutHandler(TIMEOUT))
+                            .addHandlerLast(WriteTimeoutHandler(TIMEOUT))
                     }
             }
 
@@ -94,7 +94,7 @@ class AirtableClient(
             .retrieve()
             .bodyToMono(pageType)
             .retryWhen(
-                Retry.backoff(5, Duration.ofMillis(250))
+                Retry.backoff(MAX_RETRY, Duration.ofMillis(250))
                     .minBackoff(Duration.ofMillis(100))
             )
     }
@@ -120,10 +120,6 @@ class AirtableClient(
             .bodyValue(request)
             .retrieve()
             .bodyToMono(pageType)
-            .retryWhen(
-                Retry.backoff(5, Duration.ofMillis(250))
-                    .minBackoff(Duration.ofMillis(100))
-            )
     }
 
     fun <T> createRecords(
@@ -147,10 +143,6 @@ class AirtableClient(
             .bodyValue(request)
             .retrieve()
             .bodyToMono(pageType)
-            .retryWhen(
-                Retry.backoff(5, Duration.ofMillis(250))
-                    .minBackoff(Duration.ofMillis(100))
-            )
     }
 
     private fun <T> createPageType(type: Class<T>) =
@@ -164,6 +156,8 @@ class AirtableClient(
 
     companion object {
         private const val AIRTABLE_API_URL: String = "https://api.airtable.com/v0/"
+        private const val TIMEOUT = 120
+        private const val MAX_RETRY = 5L
 
         inline fun <reified T> AirtableClient.getRecords(
             tableName: String,
